@@ -39,12 +39,30 @@ struct gpio {
   bool active_low;
 };
 
+
+struct spi {
+  uint32_t speed; /*bits per second*/
+  const char *const device; /*device file*/
+  const char *const name;
+  uint32_t bpw; /*bits per word*/
+  bool loopback;
+  bool cpha; /*clock phase*/
+  bool cpol; /*clock polarity*/
+  bool lsb_first; /*least significant bit first*/
+  bool cs_high; /*chip select active high*/
+  bool threewire; /*SI/SO signals shared*/
+  bool no_cs; /*no internal chip select control*/
+  const gpio &cs_pin; /*pin used for chip select*/
+};
+
 static constexpr gpio valve0{5, "VALVE1", gpio::direction::out, false};
 static constexpr gpio valve1{6, "VALVE2", gpio::direction::out, false};
 static constexpr gpio ads1248_cs{18, "ADS1248_CS", gpio::direction::out, true};
-static constexpr gpio ads1248_reset{23, "ADS1248_CS", gpio::direction::out,
-                                    true};
+static constexpr gpio ads1248_reset{23, "ADS1248_CS", gpio::direction::out, true};
 static constexpr gpio burnwire{14, "BURNWIRE", gpio::direction::out, false};
+
+static constexpr spi ads1248{50000, "/dev/spidev0.0", "ADS1248 Temperature ADC", 8, false, false, true, false, false, false, true, ads1248_cs};
+
 }
 
 class Valve : public QObject {
@@ -93,5 +111,18 @@ public:
 
   void actuate();
 };
+
+class ADS1248 : public QObject {
+  Q_OBJECT
+
+  class Impl;
+  std::unique_ptr<Impl> d;
+
+  public:
+  ADS1248(const config::spi &cs, const config::gpio &reset);
+
+
+};
+
 }
 }

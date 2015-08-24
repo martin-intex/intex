@@ -1,7 +1,9 @@
 #include <QDebug>
 #include <QTimer>
 #include <QString>
+#include <QThread>
 
+#include <thread>
 #include <chrono>
 #include <iostream>
 #include <fstream>
@@ -9,6 +11,7 @@
 #include <string>
 #include <cassert>
 #include <unistd.h>
+
 #include "IntexHardware.h"
 
 using namespace std::chrono;
@@ -382,12 +385,42 @@ BurnWire::~BurnWire() = default;
 
 void BurnWire::actuate() {
   d->on();
-  /*XXX: please replace with an appropriate qt timer and remove #include <unistd.h>*/
+  /*XXX: please replace with an appropriate qt timer and remove #include
+   * <unistd.h>*/
   sleep(3);
   d->off();
 }
+
+
+class ADS1248::Impl {
+  GPIO reset_pin;
+
+public:
+  Impl(const config::spi &config, const config::gpio &reset)
+      : reset_pin(::intex::hw::debug_gpio(reset))
+  {
+    reset_pin.on();
+    /*Todo - add a proiate QT function here*/
+    std::this_thread::sleep_for(200ms);
+    reset_pin.off();
+  }
+
+private:
+
+
+};
+
+
+
+ADS1248::ADS1248(const config::spi &config, const config::gpio &reset)
+: d(std::make_unique<Impl>(config,reset))
+{
 }
-}
+
+
+
+} /*namespace hw*/
+} /*namspace intex*/
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
 #include "IntexHardware.moc"
 #include "moc_IntexHardware.cpp"

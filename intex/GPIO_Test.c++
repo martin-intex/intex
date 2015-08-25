@@ -20,7 +20,9 @@ int main() {
   class ::intex::hw::BurnWire BurnWire(intex::hw::config::burnwire);
   class ::intex::hw::Valve Valve0(intex::hw::config::valve0);
   class ::intex::hw::Valve Valve1(intex::hw::config::valve1);
+  class ::intex::hw::ADS1248 ADS1248(intex::hw::config::ads1248,intex::hw::config::ads1248_reset);
 
+/*
   std::cout << "Valve 0 on ... " << std::flush;
   Valve0.set(true);
   std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -38,6 +40,8 @@ int main() {
   std::cout << "Turn Burnwire on ... burning" << std::flush;
   BurnWire.actuate();
   std::cout << "done" << std::endl;
+*/
+
 
   return 0;
 }

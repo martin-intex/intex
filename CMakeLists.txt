@@ -11,6 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weverything")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++98-compat-pedantic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-padded")
+
 if(NOT "${GCC_TOOLCHAIN}" STREQUAL "")
   if(NOT EXISTS "${GCC_TOOLCHAIN}")
     message(FATAL_ERROR "GCC toolchain directory ${GCC_TOOLCHAIN} does not exist.")

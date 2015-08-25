@@ -9,9 +9,15 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cstring>
 #include <cassert>
 #include <unistd.h>
-
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/types.h>
+extern "C" {
+#include <linux/spi/spidev.h>
+}
 #include "IntexHardware.h"
 
 using namespace std::chrono;
@@ -361,7 +367,7 @@ void Heater::temperatureChanged(int temperature) {
   d->temperatureChanged(temperature);
 }
 
-class BurnWire::Impl {
+struct BurnWire::Impl {
   GPIO pin;
 
 public:
@@ -380,7 +386,9 @@ public:
 };
 
 BurnWire::BurnWire(const config::gpio &config)
-    : d(std::make_unique<Impl>(config)) {}
+    : d(std::make_unique<Impl>(config)) {
+    d->pin.init();
+    }
 BurnWire::~BurnWire() = default;
 
 void BurnWire::actuate() {
@@ -391,32 +399,217 @@ void BurnWire::actuate() {
   d->off();
 }
 
-
-class ADS1248::Impl {
-  GPIO reset_pin;
+class spi {
 
 public:
-  Impl(const config::spi &config, const config::gpio &reset)
-      : reset_pin(::intex::hw::debug_gpio(reset))
-  {
-    reset_pin.on();
-    /*Todo - add a proiate QT function here*/
-    std::this_thread::sleep_for(200ms);
-    reset_pin.off();
+static spi& get_instance(const config::spi &config)
+{
+/*Todo - make some fancy stuff to create a new device, that has not been seen before and store it
+in a accosicative array*/
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+static class spi spidev00("/dev/spidev0.0");
+static class spi spidev01("/dev/spidev0.1");
+#pragma clang diagnostic pop
+
+
+if (strcmp(config.device,"/dev/spidev0.0")==0)
+ return spidev00;
+if (strcmp(config.device,"/dev/spidev0.1")==0)
+ return spidev01;
+
+throw std::runtime_error("Invalide SPI device");
+
+}
+
+
+  void configure(config::spi &config, GPIO &cs_pin) {
+    /*Bitmask SPI mode for ioctl*/
+    uint32_t mode=0;
+    /*bits per word and speed readback*/
+    uint32_t bpw, speed;
+    /*C call return value*/
+    int ret;
+
+    if (config.loopback)
+      mode |= SPI_LOOP;
+    if (config.cpha)
+      mode |= SPI_CPHA;
+    if (config.cpol)
+      mode |= SPI_CPOL;
+    if (config.lsb_first)
+      mode |= SPI_LSB_FIRST;
+    if (config.cs_high)
+      mode |= SPI_CS_HIGH;
+    if (config.threewire)
+      mode |= SPI_3WIRE;
+    if (config.no_cs)
+      mode |= SPI_NO_CS;
+
+    ret = ioctl(fd, SPI_IOC_WR_MODE32, &mode);
+    if (ret == -1)
+      throw std::runtime_error("Could not set SPI mode");
+
+    ret = ioctl(fd, SPI_IOC_RD_MODE32, &mode);
+    if (ret == -1)
+      throw std::runtime_error("Could not get SPI mode");
+    qDebug() << "Read back SPI config: " << mode;
+
+    ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, config.bpw);
+    if (ret == -1)
+      throw std::runtime_error("Could not set SPI bits per word");
+
+    ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bpw);
+    if (ret == -1)
+      throw std::runtime_error("Could not get SPI bits per word");
+    qDebug() << "Read back SPI BPW: " << bpw;
+    assert(bpw == config.bpw);
+
+    /*
+     * max speed hz
+     */
+    ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, config.speed);
+    if (ret == -1)
+      throw std::runtime_error("Could not set SPI speed");
+
+    ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
+    if (ret == -1)
+      throw std::runtime_error("Could not get SPI speed");
+    qDebug() << "Set SPI speed from " << config.name << " to " << speed;
+
+    /*We still need some values from the configuration during transfer*/
+    _current_config = &config;
+
+    /*store the current cs pin for following transfers*/
+    _current_cs_pin = &cs_pin;
   }
+
+  /*Performe one transfere with deassertes CS*/
+  void transfer(uint8_t *tx, uint8_t *rx, size_t len) {
+    int ret;
+
+    struct spi_ioc_transfer tr;
+
+    tr.tx_buf = reinterpret_cast<uint64_t>(tx);
+    tr.rx_buf = reinterpret_cast<uint64_t>(rx);
+    tr.len = static_cast<uint32_t>(len);
+    tr.delay_usecs = _current_config->delay;
+    tr.speed_hz = _current_config->speed;
+    tr.bits_per_word = _current_config->bpw;
+
+    if (_current_config->no_cs) {
+      /*Disable CS - just in case ....*/
+      _current_cs_pin->off();
+    } else
+      /*one transfere shall be completed with a deasserted CS*/
+      tr.cs_change = 1;
+
+    /*one transfere transferes without a CS deassert*/
+    tr.tx_nbits = _current_config->bpw;
+    tr.rx_nbits = _current_config->bpw;
+
+    if (_current_config->no_cs)
+      _current_cs_pin->on();
+    ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
+    if (ret < 1)
+      throw std::runtime_error("Could not transfere SPI data");
+    if (_current_config->no_cs)
+      _current_cs_pin->off();
+  }
+
 
 private:
 
+  spi(const char *device)
+  : _current_config(nullptr), _current_cs_pin(nullptr)
+   {
+    fd = open(device, O_RDWR);
+    if (fd < 0)
+      throw std::runtime_error("Could not open SPI device");
+    qDebug() << "Set up SPI device " << device;
+  }
 
+  ~spi() {
+    /*C call return value*/
+    int ret;
+
+    ret = close(fd);
+    if (ret)
+      throw std::runtime_error("Could not close SPI device");
+  }
+
+  config::spi *_current_config;
+  /*GPIO Pin for CS usage*/
+  GPIO *_current_cs_pin;
+  /*SPI mode bitfild*/
+
+  int fd;
 };
 
+struct ADS1248::Impl {
+  GPIO reset_pin;
+  GPIO *cs_pin;
+  spi &spi_bus;
+  config::spi _config;
+public:
+  Impl(const config::spi &config, const config::gpio &reset)
+      : reset_pin(::intex::hw::gpio(reset)), spi_bus(spi::get_instance(config)),
+      _config(config) {
 
+    reset_pin.init();
+    if (config.no_cs)
+    {
+     cs_pin = new GPIO(::intex::hw::gpio(config.cs_pin));
+    cs_pin->init();
+    };
+    /*Todo - add a proiate QT function here*/
+    std::this_thread::sleep_for(200ms);
+    //    reset_pin.off();
+  }
+
+   void reset()
+   {
+   reset_pin.on();
+   std::cout << "Reset active (low)"<< std::endl;
+   std::cin.get();
+   reset_pin.on();
+   std::cout << "Reset deactivated (high)" << std::endl;
+   std::cin.get();
+
+   uint8_t tx[]={0x06};
+   uint8_t rx[1];
+
+   spi_bus.configure(_config,*cs_pin);
+   spi_bus.transfer(tx,rx,1);
+   std::this_thread::sleep_for(200ms);
+
+
+   }
+  /*return true if device is present, false if communication is not possible*/
+   bool selftest()
+   {
+   uint8_t tx[]={0x0B,0xFF};
+   spi_bus.configure(_config,*cs_pin);
+   //spi_bus.transfer();
+   /*Todo - add a proiate QT function here*/
+   std::this_thread::sleep_for(200ms);
+
+   }
+
+private:
+};
 
 ADS1248::ADS1248(const config::spi &config, const config::gpio &reset)
-: d(std::make_unique<Impl>(config,reset))
-{
-}
+     {
+    /*Why can I not use the std::make_unique<Impl> way here?*/
+    d=new Impl(config, reset);
+    d->reset();
+    }
 
+bool ADS1248::selftest()
+{
+return d->selftest();
+}
 
 
 } /*namespace hw*/

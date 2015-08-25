@@ -32,7 +32,6 @@ namespace config {
 
 struct gpio {
   enum class direction { in, out };
-
   int pinno;
   const char *const name;
   enum direction direction;
@@ -43,8 +42,9 @@ struct gpio {
 struct spi {
   uint32_t speed; /*bits per second*/
   const char *const device; /*device file*/
-  const char *const name;
-  uint32_t bpw; /*bits per word*/
+  const char *const name; /*Human readable description to device*/
+  uint8_t bpw; /*bits per word*/
+  uint16_t delay;
   bool loopback;
   bool cpha; /*clock phase*/
   bool cpol; /*clock polarity*/
@@ -61,7 +61,7 @@ static constexpr gpio ads1248_cs{18, "ADS1248_CS", gpio::direction::out, true};
 static constexpr gpio ads1248_reset{23, "ADS1248_CS", gpio::direction::out, true};
 static constexpr gpio burnwire{14, "BURNWIRE", gpio::direction::out, false};
 
-static constexpr spi ads1248{50000, "/dev/spidev0.0", "ADS1248 Temperature ADC", 8, false, false, true, false, false, false, true, ads1248_cs};
+static constexpr spi ads1248{50000, "/dev/spidev0.0", "ADS1248 Temperature ADC", 8, 0, false, false, true, false, false, false, true, ads1248_cs};
 
 }
 
@@ -86,7 +86,7 @@ Q_SIGNALS:
 class Heater : public QObject {
   Q_OBJECT
 
-  class Impl;
+  struct Impl;
   std::unique_ptr<Impl> d;
 
 public:
@@ -101,7 +101,7 @@ public:
 class BurnWire : public QObject {
   Q_OBJECT
 
-  class Impl;
+  struct Impl;
   std::unique_ptr<Impl> d;
 
 public:
@@ -116,10 +116,11 @@ class ADS1248 : public QObject {
   Q_OBJECT
 
   class Impl;
-  std::unique_ptr<Impl> d;
+  Impl *d;
 
   public:
-  ADS1248(const config::spi &cs, const config::gpio &reset);
+  ADS1248(const config::spi &config, const config::gpio &reset);
+  bool selftest();
 
 
 };

@@ -46,6 +46,7 @@ public:
 private:
   config::gpio config_;
   void set(const bool on);
+  bool isinitialized;
 };
 
 static const char *to_string(const enum config::gpio::direction &direction) {
@@ -117,7 +118,7 @@ static int get_attribute(const gpio::attribute attr, const int pin) {
   return value;
 }
 
-gpio::gpio(const config::gpio &config) : config_(config) {}
+gpio::gpio(const config::gpio &config) : config_(config), isinitialized(false) {}
 
 void gpio::init() {
   std::cout << "Configuring GPIO " << config_.name << " (" << config_.pinno
@@ -127,15 +128,17 @@ void gpio::init() {
   export_pin(config_.pinno);
   set_attribute(attribute::active_low, config_.pinno, config_.active_low);
   set_attribute(attribute::direction, config_.pinno, config_.direction);
+  isinitialized=true;
 }
 
 void gpio::on() { set(true); }
 void gpio::off() { set(false); }
-bool gpio::isOn() {
+bool gpio::isOn() { assert(isinitialized);
   return get_attribute<int>(attribute::value, config_.pinno);
 }
 
 void gpio::set(const bool on) {
+  assert(isinitialized);
   for (int retry = 0; retry < retries; ++retry) {
     set_attribute(attribute::value, config_.pinno, static_cast<int>(on));
     if (isOn() == on)

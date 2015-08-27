@@ -15,6 +15,10 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+
 extern "C" {
 #include <linux/spi/spidev.h>
 }
@@ -81,14 +85,30 @@ static std::ostream &operator<<(std::ostream &os,
     return os << "value";
   }
 }
+static bool is_directory_present(const char * path)
+ {
+struct stat st;
+if(stat(path,&st) == 0)
+ return S_ISDIR(st.st_mode);
+ else
+return false;
+
+ }
+
 
 static void export_pin(int pin) {
   std::ofstream export_;
-
+/*Directory name for the gpio controll*/
+std::stringstream  dname;
+dname << "/sys/class/gpio/gpio" << pin;
+/*Check if already present*/
+if(!is_directory_present(dname.str().c_str()))
+{
   export_.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-
   export_.open("/sys/class/gpio/export");
   export_ << pin << std::endl;
+}
+
 }
 
 static void sysfs_file(std::fstream &file, const gpio::attribute attr,
@@ -126,9 +146,10 @@ void gpio::init() {
             << (config_.active_low ? "(active low)" : "") << "." << std::endl;
 
   export_pin(config_.pinno);
+  isinitialized=true;
   set_attribute(attribute::active_low, config_.pinno, config_.active_low);
   set_attribute(attribute::direction, config_.pinno, config_.direction);
-  isinitialized=true;
+
 }
 
 void gpio::on() { set(true); }
@@ -138,6 +159,7 @@ bool gpio::isOn() { assert(isinitialized);
 }
 
 void gpio::set(const bool on) {
+
   assert(isinitialized);
   for (int retry = 0; retry < retries; ++retry) {
     set_attribute(attribute::value, config_.pinno, static_cast<int>(on));
@@ -311,7 +333,7 @@ void Valve::set(const bool state) {
     d->pwm.stop();
 }
 
-class Heater::Impl {
+struct Heater::Impl {
   PWM pwm;
   GPIO pin;
   QTimer timer;
@@ -409,6 +431,7 @@ static spi& get_instance(const config::spi &config)
 {
 /*Todo - make some fancy stuff to create a new device, that has not been seen before and store it
 in a accosicative array*/
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 static class spi spidev00("/dev/spidev0.0");
@@ -430,7 +453,8 @@ throw std::runtime_error("Invalide SPI device");
     /*Bitmask SPI mode for ioctl*/
     uint32_t mode=0;
     /*bits per word and speed readback*/
-    uint32_t bpw, speed;
+    uint32_t speed;
+    uint8_t bpw;
     /*C call return value*/
     int ret;
 
@@ -458,27 +482,27 @@ throw std::runtime_error("Invalide SPI device");
       throw std::runtime_error("Could not get SPI mode");
     qDebug() << "Read back SPI config: " << mode;
 
-    ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, config.bpw);
+    ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &config.bpw);
     if (ret == -1)
       throw std::runtime_error("Could not set SPI bits per word");
 
     ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bpw);
     if (ret == -1)
       throw std::runtime_error("Could not get SPI bits per word");
-    qDebug() << "Read back SPI BPW: " << bpw;
+    qDebug() << "Read back SPI (fd: " << fd << ") BPW"  << bpw << "was (" << config.bpw << ")";
     assert(bpw == config.bpw);
 
     /*
      * max speed hz
      */
-    ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, config.speed);
+    ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &config.speed);
     if (ret == -1)
       throw std::runtime_error("Could not set SPI speed");
 
     ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
     if (ret == -1)
       throw std::runtime_error("Could not get SPI speed");
-    qDebug() << "Set SPI speed from " << config.name << " to " << speed;
+    qDebug() << "Set SPI speed (fd: " << fd <<") from " << config.name << " to " << speed;
 
     /*We still need some values from the configuration during transfer*/
     _current_config = &config;
@@ -560,6 +584,8 @@ public:
       _config(config) {
 
     reset_pin.init();
+    reset_pin.on();
+
     if (config.no_cs)
     {
      cs_pin = new GPIO(::intex::hw::gpio(config.cs_pin));
@@ -574,16 +600,16 @@ public:
    {
    reset_pin.on();
    std::cout << "Reset active (low)"<< std::endl;
-   std::cin.get();
-   reset_pin.on();
+   //std::cin.get();
+   reset_pin.off();
    std::cout << "Reset deactivated (high)" << std::endl;
-   std::cin.get();
-
+   //std::cin.get();
+/*
    uint8_t tx[]={0x06};
    uint8_t rx[1];
-
+*/
    spi_bus.configure(_config,*cs_pin);
-   spi_bus.transfer(tx,rx,1);
+//   spi_bus.transfer(tx,rx,1);
    std::this_thread::sleep_for(200ms);
 
 
@@ -591,11 +617,12 @@ public:
   /*return true if device is present, false if communication is not possible*/
    bool selftest()
    {
-   uint8_t tx[]={0x0B,0xFF};
+   uint8_t tx[2]={0x2B,0x00};
+   uint8_t rx[10];
    spi_bus.configure(_config,*cs_pin);
-   //spi_bus.transfer();
-   /*Todo - add a proiate QT function here*/
-   std::this_thread::sleep_for(200ms);
+   spi_bus.transfer(tx,rx,2);
+
+   std::cout << "Selftest read from 0x0B returns: "  << std::hex << static_cast<unsigned int>(rx[1]) << std::endl;
 
    }
 
@@ -606,12 +633,18 @@ ADS1248::ADS1248(const config::spi &config, const config::gpio &reset)
      {
     /*Why can I not use the std::make_unique<Impl> way here?*/
     d=new Impl(config, reset);
+    std::cout << "ADS1248 Impl created" << std::endl;
+    std::cout << "ADS1248 Reset ...";
     d->reset();
+    std::cout << " done" << std::endl;
     }
 
 bool ADS1248::selftest()
 {
-return d->selftest();
+bool ret;
+std::cout << "Selftest start ADS1248 " << std::flush;
+ret= d->selftest();
+std::cout << "done " << std::endl;
 }
 
 

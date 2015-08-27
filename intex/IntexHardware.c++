@@ -450,5 +450,5 @@ bool ADS1248::selftest() {
 } /*namespace hw*/
 } /*namspace intex*/
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
-#include "IntexHardware.moc"
-#include "moc_IntexHardware.cpp"
+//#include "IntexHardware.moc"
+//#include "moc_IntexHardware.cpp"

@@ -4,7 +4,7 @@
 
 class ADS1248  {
   struct Impl;
-  std::unique_ptr<Impl> d;
+  Impl *d;
 
   public:
   ADS1248();

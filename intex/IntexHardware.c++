@@ -13,7 +13,7 @@ public:
 
 
 ADS1248::ADS1248() :
-d(std::make_unique<Impl>())
+d(new Impl())
  {
 }
 

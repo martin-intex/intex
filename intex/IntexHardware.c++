@@ -598,22 +598,8 @@ public:
 
    void reset()
    {
-   reset_pin.on();
-   std::cout << "Reset active (low)"<< std::endl;
-   //std::cin.get();
-   reset_pin.off();
-   std::cout << "Reset deactivated (high)" << std::endl;
-   //std::cin.get();
-/*
-   uint8_t tx[]={0x06};
-   uint8_t rx[1];
-*/
-   spi_bus.configure(_config,*cs_pin);
-//   spi_bus.transfer(tx,rx,1);
-   std::this_thread::sleep_for(200ms);
-
-
    }
+
   /*return true if device is present, false if communication is not possible*/
    bool selftest()
    {

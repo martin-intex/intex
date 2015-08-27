@@ -600,18 +600,11 @@ ADS1248::ADS1248(const config::spi &config, const config::gpio &reset)
      {
     /*Why can I not use the std::make_unique<Impl> way here?*/
     d=new Impl(config, reset);
-    std::cout << "ADS1248 Impl created" << std::endl;
-    std::cout << "ADS1248 Reset ...";
-    d->reset();
-    std::cout << " done" << std::endl;
     }
 
 bool ADS1248::selftest()
 {
-bool ret;
-std::cout << "Selftest start ADS1248 " << std::flush;
-ret= d->selftest();
-std::cout << "done " << std::endl;
+return d->selftest();
 }
 
 

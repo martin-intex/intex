@@ -28,7 +28,3 @@ bool ADS1248::selftest() {
 
 
 
-
-#pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
-//#include "IntexHardware.moc"
-//#include "moc_IntexHardware.cpp"

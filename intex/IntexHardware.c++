@@ -422,24 +422,6 @@ void BurnWire::actuate() {
 class spi {
 
 public:
-  static spi &get_instance(const config::spi &config) {
-/*Todo - make some fancy stuff to create a new device, that has not been seen
-before and store it
-in a accosicative array*/
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wexit-time-destructors"
-    static class spi spidev00("/dev/spidev0.0");
-    static class spi spidev01("/dev/spidev0.1");
-#pragma clang diagnostic pop
-
-    if (strcmp(config.device, "/dev/spidev0.0") == 0)
-      return spidev00;
-    if (strcmp(config.device, "/dev/spidev0.1") == 0)
-      return spidev01;
-
-    throw std::runtime_error("Invalide SPI device");
-  }
 
   void configure(config::spi &config, GPIO &cs_pin) {
     /*Bitmask SPI mode for ioctl*/

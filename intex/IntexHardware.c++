@@ -576,24 +576,12 @@ private:
 struct ADS1248::Impl {
   GPIO reset_pin;
   GPIO *cs_pin;
-  spi &spi_bus;
-//  config::spi _config;
+//  spi &spi_bus;
+  config::spi _config;
 public:
   Impl(const config::spi &config, const config::gpio &reset)
       : reset_pin(::intex::hw::gpio(reset)),
       _config(config) {
-
-    reset_pin.init();
-    reset_pin.on();
-
-    if (config.no_cs)
-    {
-     cs_pin = new GPIO(::intex::hw::gpio(config.cs_pin));
-    cs_pin->init();
-    };
-    /*Todo - add a proiate QT function here*/
-    std::this_thread::sleep_for(200ms);
-    //    reset_pin.off();
   }
 
    void reset()

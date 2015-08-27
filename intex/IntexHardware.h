@@ -1,8 +1,5 @@
 #pragma once
 
-namespace intex {
-namespace hw {
-
 
 
 class ADS1248  {
@@ -17,5 +14,3 @@ class ADS1248  {
 
 };
 
-}
-}

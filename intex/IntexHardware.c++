@@ -1,25 +1,7 @@
-#include <thread>
-#include <chrono>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <cstring>
-#include <cassert>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <memory>
 
-extern "C" {
-#include <linux/spi/spidev.h>
-}
 #include "IntexHardware.h"
-
-namespace intex {
-namespace hw {
 
 struct ADS1248::Impl {
 public: 
@@ -33,8 +15,6 @@ public:
 ADS1248::ADS1248() :
 d(std::make_unique<Impl>())
  {
-  /*Why can I not use the std::make_unique<Impl> way here?*/
-//  d = new Impl(config, reset);
 }
 
 ADS1248::~ADS1248() {}
@@ -49,8 +29,6 @@ bool ADS1248::selftest() {
 
 
 
-} /*namespace hw*/
-} /*namspace intex*/
 #pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
-#include "IntexHardware.moc"
+//#include "IntexHardware.moc"
 //#include "moc_IntexHardware.cpp"

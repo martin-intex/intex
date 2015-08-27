@@ -1,6 +1,6 @@
-#include <QDebug>
-#include <QTimer>
-#include <QString>
+//#include <QDebug>
+//#include <QTimer>
+//#include <QString>
 
 #include <chrono>
 #include <iostream>
@@ -12,7 +12,7 @@
 
 #include "IntexHardware.h"
 int main() {
-  class ::intex::hw::ADS1248 ADS1248(intex::hw::config::ads1248,intex::hw::config::ads1248_reset);
+  class ::intex::hw::ADS1248 ADS1248;
 
  ADS1248.selftest();
  std::cout << "Selftest done main " << std::flush;

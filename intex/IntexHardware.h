@@ -1,14 +1,8 @@
 #pragma once
 
-#include <memory>
-
-#include <QObject>
-#include <QString>
-
 namespace intex {
 namespace hw {
 
-namespace config {
 
 
 class ADS1248  {

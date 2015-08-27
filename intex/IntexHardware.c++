@@ -577,10 +577,10 @@ struct ADS1248::Impl {
   GPIO reset_pin;
   GPIO *cs_pin;
   spi &spi_bus;
-  config::spi _config;
+//  config::spi _config;
 public:
   Impl(const config::spi &config, const config::gpio &reset)
-      : reset_pin(::intex::hw::gpio(reset)), spi_bus(spi::get_instance(config)),
+      : reset_pin(::intex::hw::gpio(reset)),
       _config(config) {
 
     reset_pin.init();
@@ -603,13 +603,6 @@ public:
   /*return true if device is present, false if communication is not possible*/
    bool selftest()
    {
-   uint8_t tx[2]={0x2B,0x00};
-   uint8_t rx[10];
-   spi_bus.configure(_config,*cs_pin);
-   spi_bus.transfer(tx,rx,2);
-
-   std::cout << "Selftest read from 0x0B returns: "  << std::hex << static_cast<unsigned int>(rx[1]) << std::endl;
-
    }
 
 private:

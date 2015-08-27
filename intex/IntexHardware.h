@@ -116,10 +116,11 @@ class ADS1248  {
   //Q_OBJECT
 
   struct Impl;
-  Impl *d;
+  std::unique_ptr<Impl> d;
 
   public:
   ADS1248(const config::spi &config, const config::gpio &reset);
+  ~ADS1248();
   bool selftest();
 
 

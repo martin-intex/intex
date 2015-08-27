@@ -564,17 +564,22 @@ private:
 };
 
 struct ADS1248::Impl {
-public:
-  Impl(const config::spi &config, const config::gpio &reset) {}
+public: 
+ Impl(const config::spi &config, const config::gpio &reset) {}
 
   /*return true if device is present, false if communication is not possible*/
   bool selftest() {}
 };
 
-ADS1248::ADS1248(const config::spi &config, const config::gpio &reset) {
+
+ADS1248::ADS1248(const config::spi &config, const config::gpio &reset) :
+d(std::make_unique<Impl>(config, reset))
+ {
   /*Why can I not use the std::make_unique<Impl> way here?*/
-  d = new Impl(config, reset);
+//  d = new Impl(config, reset);
 }
+
+ADS1248::~ADS1248() {}
 
 bool ADS1248::selftest() {
 
@@ -582,6 +587,9 @@ bool ADS1248::selftest() {
   std::cout << "Dont reach this line " << std::endl;
   return false;
 }
+
+
+
 
 } /*namespace hw*/
 } /*namspace intex*/

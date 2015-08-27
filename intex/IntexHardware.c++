@@ -1,8 +1,3 @@
-#include <QDebug>
-#include <QTimer>
-#include <QString>
-#include <QThread>
-
 #include <thread>
 #include <chrono>
 #include <iostream>

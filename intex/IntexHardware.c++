@@ -18,7 +18,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
 extern "C" {
 #include <linux/spi/spidev.h>
 }
@@ -85,30 +84,25 @@ static std::ostream &operator<<(std::ostream &os,
     return os << "value";
   }
 }
-static bool is_directory_present(const char * path)
- {
-struct stat st;
-if(stat(path,&st) == 0)
- return S_ISDIR(st.st_mode);
- else
-return false;
-
- }
-
+static bool is_directory_present(const char *path) {
+  struct stat st;
+  if (stat(path, &st) == 0)
+    return S_ISDIR(st.st_mode);
+  else
+    return false;
+}
 
 static void export_pin(int pin) {
   std::ofstream export_;
-/*Directory name for the gpio controll*/
-std::stringstream  dname;
-dname << "/sys/class/gpio/gpio" << pin;
-/*Check if already present*/
-if(!is_directory_present(dname.str().c_str()))
-{
-  export_.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-  export_.open("/sys/class/gpio/export");
-  export_ << pin << std::endl;
-}
-
+  /*Directory name for the gpio controll*/
+  std::stringstream dname;
+  dname << "/sys/class/gpio/gpio" << pin;
+  /*Check if already present*/
+  if (!is_directory_present(dname.str().c_str())) {
+    export_.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+    export_.open("/sys/class/gpio/export");
+    export_ << pin << std::endl;
+  }
 }
 
 static void sysfs_file(std::fstream &file, const gpio::attribute attr,
@@ -138,7 +132,8 @@ static int get_attribute(const gpio::attribute attr, const int pin) {
   return value;
 }
 
-gpio::gpio(const config::gpio &config) : config_(config), isinitialized(false) {}
+gpio::gpio(const config::gpio &config)
+    : config_(config), isinitialized(false) {}
 
 void gpio::init() {
   std::cout << "Configuring GPIO " << config_.name << " (" << config_.pinno
@@ -146,15 +141,15 @@ void gpio::init() {
             << (config_.active_low ? "(active low)" : "") << "." << std::endl;
 
   export_pin(config_.pinno);
-  isinitialized=true;
+  isinitialized = true;
   set_attribute(attribute::active_low, config_.pinno, config_.active_low);
   set_attribute(attribute::direction, config_.pinno, config_.direction);
-
 }
 
 void gpio::on() { set(true); }
 void gpio::off() { set(false); }
-bool gpio::isOn() { assert(isinitialized);
+bool gpio::isOn() {
+  assert(isinitialized);
   return get_attribute<int>(attribute::value, config_.pinno);
 }
 
@@ -412,8 +407,8 @@ public:
 
 BurnWire::BurnWire(const config::gpio &config)
     : d(std::make_unique<Impl>(config)) {
-    d->pin.init();
-    }
+  d->pin.init();
+}
 BurnWire::~BurnWire() = default;
 
 void BurnWire::actuate() {
@@ -427,31 +422,28 @@ void BurnWire::actuate() {
 class spi {
 
 public:
-static spi& get_instance(const config::spi &config)
-{
-/*Todo - make some fancy stuff to create a new device, that has not been seen before and store it
+  static spi &get_instance(const config::spi &config) {
+/*Todo - make some fancy stuff to create a new device, that has not been seen
+before and store it
 in a accosicative array*/
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
-static class spi spidev00("/dev/spidev0.0");
-static class spi spidev01("/dev/spidev0.1");
+    static class spi spidev00("/dev/spidev0.0");
+    static class spi spidev01("/dev/spidev0.1");
 #pragma clang diagnostic pop
 
+    if (strcmp(config.device, "/dev/spidev0.0") == 0)
+      return spidev00;
+    if (strcmp(config.device, "/dev/spidev0.1") == 0)
+      return spidev01;
 
-if (strcmp(config.device,"/dev/spidev0.0")==0)
- return spidev00;
-if (strcmp(config.device,"/dev/spidev0.1")==0)
- return spidev01;
-
-throw std::runtime_error("Invalide SPI device");
-
-}
-
+    throw std::runtime_error("Invalide SPI device");
+  }
 
   void configure(config::spi &config, GPIO &cs_pin) {
     /*Bitmask SPI mode for ioctl*/
-    uint32_t mode=0;
+    uint32_t mode = 0;
     /*bits per word and speed readback*/
     uint32_t speed;
     uint8_t bpw;
@@ -489,7 +481,8 @@ throw std::runtime_error("Invalide SPI device");
     ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bpw);
     if (ret == -1)
       throw std::runtime_error("Could not get SPI bits per word");
-    qDebug() << "Read back SPI (fd: " << fd << ") BPW"  << bpw << "was (" << config.bpw << ")";
+    qDebug() << "Read back SPI (fd: " << fd << ") BPW" << bpw << "was ("
+             << config.bpw << ")";
     assert(bpw == config.bpw);
 
     /*
@@ -502,7 +495,8 @@ throw std::runtime_error("Invalide SPI device");
     ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
     if (ret == -1)
       throw std::runtime_error("Could not get SPI speed");
-    qDebug() << "Set SPI speed (fd: " << fd <<") from " << config.name << " to " << speed;
+    qDebug() << "Set SPI speed (fd: " << fd << ") from " << config.name
+             << " to " << speed;
 
     /*We still need some values from the configuration during transfer*/
     _current_config = &config;
@@ -544,12 +538,8 @@ throw std::runtime_error("Invalide SPI device");
       _current_cs_pin->off();
   }
 
-
 private:
-
-  spi(const char *device)
-  : _current_config(nullptr), _current_cs_pin(nullptr)
-   {
+  spi(const char *device) : _current_config(nullptr), _current_cs_pin(nullptr) {
     fd = open(device, O_RDWR);
     if (fd < 0)
       throw std::runtime_error("Could not open SPI device");
@@ -575,35 +565,23 @@ private:
 
 struct ADS1248::Impl {
 public:
-  Impl(const config::spi &config, const config::gpio &reset)
-{
-  }
-
-   void reset()
-   {
-   }
+  Impl(const config::spi &config, const config::gpio &reset) {}
 
   /*return true if device is present, false if communication is not possible*/
-   bool selftest()
-   {
-
-   }
-
-private:
+  bool selftest() {}
 };
 
-ADS1248::ADS1248(const config::spi &config, const config::gpio &reset)
-     {
-    /*Why can I not use the std::make_unique<Impl> way here?*/
-    d=new Impl(config, reset);
-    }
-
-bool ADS1248::selftest()
-{
-return d->selftest();
-    std::cout << "Dont reach this line " << std::endl;
+ADS1248::ADS1248(const config::spi &config, const config::gpio &reset) {
+  /*Why can I not use the std::make_unique<Impl> way here?*/
+  d = new Impl(config, reset);
 }
 
+bool ADS1248::selftest() {
+
+  d->selftest();
+  std::cout << "Dont reach this line " << std::endl;
+  return false;
+}
 
 } /*namespace hw*/
 } /*namspace intex*/

@@ -574,14 +574,9 @@ private:
 };
 
 struct ADS1248::Impl {
-  GPIO reset_pin;
-  GPIO *cs_pin;
-//  spi &spi_bus;
-  config::spi _config;
 public:
   Impl(const config::spi &config, const config::gpio &reset)
-      : reset_pin(::intex::hw::gpio(reset)),
-      _config(config) {
+{
   }
 
    void reset()
@@ -591,6 +586,7 @@ public:
   /*return true if device is present, false if communication is not possible*/
    bool selftest()
    {
+
    }
 
 private:
@@ -605,6 +601,7 @@ ADS1248::ADS1248(const config::spi &config, const config::gpio &reset)
 bool ADS1248::selftest()
 {
 return d->selftest();
+    std::cout << "Dont reach this line " << std::endl;
 }
 
 

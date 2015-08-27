@@ -572,7 +572,7 @@ public:
 };
 
 
-ADS1248::ADS1248(const config::spi &config, const config::gpio &reset) :
+ADS1248::ADS1248() :
 d(std::make_unique<Impl>())
  {
   /*Why can I not use the std::make_unique<Impl> way here?*/

@@ -119,7 +119,7 @@ class ADS1248  {
   std::unique_ptr<Impl> d;
 
   public:
-  ADS1248(const config::spi &config, const config::gpio &reset);
+  ADS1248();
   ~ADS1248();
   bool selftest();
 

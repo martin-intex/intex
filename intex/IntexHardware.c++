@@ -565,7 +565,7 @@ private:
 
 struct ADS1248::Impl {
 public: 
- Impl(const config::spi &config, const config::gpio &reset) {}
+ Impl() {}
 
   /*return true if device is present, false if communication is not possible*/
   bool selftest() {}
@@ -573,7 +573,7 @@ public:
 
 
 ADS1248::ADS1248(const config::spi &config, const config::gpio &reset) :
-d(std::make_unique<Impl>(config, reset))
+d(std::make_unique<Impl>())
  {
   /*Why can I not use the std::make_unique<Impl> way here?*/
 //  d = new Impl(config, reset);

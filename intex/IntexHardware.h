@@ -65,53 +65,6 @@ static constexpr spi ads1248{50000, "/dev/spidev0.0", "ADS1248 Temperature ADC",
 
 }
 
-class Valve : public QObject {
-  Q_OBJECT
-
-  struct Impl;
-  std::unique_ptr<Impl> d;
-
-public:
-  Valve(const config::gpio &config);
-  ~Valve();
-
-  void set(const bool state);
-
-  // clang-format off
-Q_SIGNALS:
-  void log(QString msg);
-  // clang-format on
-};
-
-class Heater : public QObject {
-  Q_OBJECT
-
-  struct Impl;
-  std::unique_ptr<Impl> d;
-
-public:
-  /* add timeout on temperatureChanged */
-  Heater(const config::gpio &config, int low, int high);
-  ~Heater();
-
-  void set(const bool on);
-  void temperatureChanged(int temperature);
-};
-
-class BurnWire : public QObject {
-  Q_OBJECT
-
-  struct Impl;
-  std::unique_ptr<Impl> d;
-
-public:
-  /* add timeout on temperatureChanged */
-  BurnWire(const config::gpio &config);
-  ~BurnWire();
-
-  void actuate();
-};
-
 class ADS1248  {
   //Q_OBJECT
 

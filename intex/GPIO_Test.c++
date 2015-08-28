@@ -12,15 +12,12 @@
 
 #include "IntexHardware.h"
 int main() {
-  // class intex::hw::gpio cs(intex::hw::config::ads1248_cs);
-  // w1248_cs
-
-  // class intex::hw::gpio BurnWire(intex::hw::config::burnwire);
-
   class ::intex::hw::BurnWire BurnWire(intex::hw::config::burnwire);
   class ::intex::hw::Valve Valve0(intex::hw::config::valve0);
   class ::intex::hw::Valve Valve1(intex::hw::config::valve1);
   class ::intex::hw::ADS1248 ADS1248(intex::hw::config::ads1248,intex::hw::config::ads1248_reset);
+
+  ADS1248.selftest();
 
 /*
   std::cout << "Valve 0 on ... " << std::flush;

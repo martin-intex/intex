@@ -311,7 +311,7 @@ void Valve::set(const bool state) {
     d->pwm.stop();
 }
 
-class Heater::Impl {
+struct Heater::Impl {
   PWM pwm;
   GPIO pin;
   QTimer timer;
@@ -591,12 +591,21 @@ public:
   /*return true if device is present, false if communication is not possible*/
    bool selftest()
    {
-   uint8_t tx[]={0x0B,0xFF};
-   spi_bus.configure(_config,*cs_pin);
-   //spi_bus.transfer();
-   /*Todo - add a proiate QT function here*/
-   std::this_thread::sleep_for(200ms);
+   /*Read Register B*/
+   uint8_t tx[]={0x2B,0x00};
+   uint8_t rx[2];
 
+   spi_bus.configure(_config,*cs_pin);
+   spi_bus.transfer(tx,rx,2);
+   std::cout << "Read of Register 0x0B: 0x" << std::hex << static_cast<unsigned int>(rx[1]) << "(should be 0xFF" <<std::endl;
+
+   /*Read Register 0*/
+   tx[0]=0x20;
+   spi_bus.transfer(tx,rx,2);
+   std::cout << "Read of Register 0x00: 0x" << std::hex << static_cast<unsigned int>(rx[1]) << "(should be 0x01" <<std::endl;
+   
+   /*Todo - a real check*/
+   return false;
    }
 
 private:

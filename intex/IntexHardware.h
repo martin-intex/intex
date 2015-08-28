@@ -115,7 +115,7 @@ public:
 class ADS1248 : public QObject {
   Q_OBJECT
 
-  class Impl;
+  struct Impl;
   Impl *d;
 
   public:

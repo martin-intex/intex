@@ -61,7 +61,19 @@ static constexpr gpio ads1248_cs{18, "ADS1248_CS", gpio::direction::out, true};
 static constexpr gpio ads1248_reset{23, "ADS1248_CS", gpio::direction::out, true};
 static constexpr gpio burnwire{14, "BURNWIRE", gpio::direction::out, false};
 
-static constexpr spi ads1248{50000, "/dev/spidev0.0", "ADS1248 Temperature ADC", 8, 0, false, false, true, false, false, false, true, ads1248_cs};
+
+static constexpr spi ads1248{150000, "/dev/spidev0.0", "ADS1248", 8, 100, false, true, false, false, false, false, true, ads1248_cs};
+
+/*Pressure Sensor Part*/
+
+static constexpr gpio hscxxxn1bar6sa5_1_cs {4, "PRESSURE SENSOR 1", gpio::direction::out, true};
+static constexpr gpio hscxxxn1bar6sa5_2_cs {17, "PRESSURE SENSOR 2", gpio::direction::out, true};
+static constexpr gpio hscxxxn12barsa5_1_cs {27, "PRESSURE SENSOR 3", gpio::direction::out, true};
+
+
+static constexpr spi hscxxxn1bar6sa5_1{7629, "/dev/spidev0.0", "PRESSURE SENSOR 1", 8, 100, false, true, false, false, false, false, true, hscxxxn1bar6sa5_1_cs};
+static constexpr spi hscxxxn1bar6sa5_2{7629, "/dev/spidev0.0", "PRESSURE SENSOR 1", 8, 100, false, true, false, false, false, false, true, hscxxxn1bar6sa5_2_cs};
+static constexpr spi hscxxxn12barsa5_1{7629, "/dev/spidev0.0", "PRESSURE SENSOR 1", 8, 100, false, true, false, false, false, false, true, hscxxxn12barsa5_1_cs};
 
 }
 
@@ -120,10 +132,30 @@ class ADS1248 : public QObject {
 
   public:
   ADS1248(const config::spi &config, const config::gpio &reset);
-  bool selftest();
+  double selftest(uint8_t sensor_select );
 
 
 };
+
+class HSCSensors : public QObject {
+  Q_OBJECT
+
+  struct Impl;
+  Impl *d;
+
+  public:
+  /*metric=true: Bar & °C
+    metric=false: PSI & °F*/
+  HSCSensors(const config::spi &config,bool metric);
+   /*Return pressure in *Bar**/
+  double get_pressure();
+
+   /*Return temperature in *°C* */
+  double get_temperature();
+
+
+};
+
 
 }
 }
